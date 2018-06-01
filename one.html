@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>最新的节点图</title>
+</head>
+<body>
+
+	<script type="text/javascript" src="d3.min.js"></script>
+	<script type="text/javascript">
+		var width =5000;
+		var height =5000;
+		var circleRadius = 10;
+		var myLinkDis = 200;
+		var myCharge = -400;
+
+
+
+		var svg = d3.select("body")
+				.append("svg")
+				.attr("width", width)
+				.attr("height", height);
+				
+		
+
+		 // 添加一个描述具体节点信息的label
+		 // 方法名
+	    var label_method_name = svg.append("text")
+						.attr("class", "labeltext")
+						.attr("x", 10)
+						.attr("y", 16)
+						.text("显示方法名");
+		// 参数
+		var label_parameter = svg.append("text")
+						.attr("class", "labeltext")
+						.attr("x", 10)
+						.attr("y", 41)
+						.text("显示参数");
+		// 返回值
+		var label_return_type = svg.append("text")
+						.attr("class", "labeltext")
+						.attr("x", 10)
+						.attr("y", 66)
+						.text("显示返回值");
+		// 所在的类
+		var label_class_name = svg.append("text")
+						.attr("class", "labeltext")
+						.attr("x", 10)
+						.attr("y", 91)
+						.text("方法所在的类");				
+						
+		// 所在的包				
+		var label_package_name = svg.append("text")
+						.attr("class","labeltext")
+						.attr("x",10)
+						.attr("y",116)
+						.text("方法所在的包");
+		// 方法id
+		var label_mid = svg.append("text")
+						.attr("class","labeltext")
+						.attr("x",400)
+						.attr("y",16)
+						.text("方法id");
+						
+		<!-- var tag_info = svg.append("text") -->
+						<!-- .attr("class","labeltext") -->
+						<!-- .attr("x",400) -->
+						<!-- .attr("y",16) -->
+						<!-- .text("方法的id"); -->
+						
+
+
+		d3.json("oneRelation.txt",function (error,root) {
+			// body...
+			if(error){
+				return console.log(error);
+			}
+			var force = d3.layout.force()
+	    			.nodes(root.nodes)
+	    			.links(root.edges)
+	    			.size([width, height])
+	    			.linkDistance(myLinkDis)
+	    			.charge( myCharge);
+
+		    // 力开始作用，颜色
+		    force.start();
+		    var color = d3.scale.category20();
+
+		    // 箭头
+	    var defs = svg.append("defs");
+	    var arrowMarker=defs.append("marker")
+				.attr("id","arrow")
+				.attr("markerUnits","strokeWidth")
+				.attr("markerWidth","12")
+				.attr("markerHeight","12")
+				.attr("viewBox","0 0 12 12")
+				.attr("refX","6")
+				.attr("refY","6")
+				.attr("orient","auto");
+
+	    var arrow_path = "M2,2 L10,6 L2,10 L6,6 L2,2";
+
+	    arrowMarker.append("path").attr("d", arrow_path).attr("fill", "#000");
+
+	   	//连线,线的宽度和颜色,中间和尾部添加箭头
+	    var svg_edges = svg.selectAll("line").data(root.edges).enter().append("line").style("stroke", "#ccc").style("stroke-width", 2);
+
+	     //节点，填充颜色;鼠标掠过，移出，节点颜色变化
+	    var svg_nodes = svg.selectAll("circle")
+	    					.data(root.nodes)
+	    					.enter()
+	    					.append("circle")
+	    					.attr("r", circleRadius)
+	    					.attr("fill", function(d, i) {
+							        return color(i);
+							    })
+	    					.on("mouseover",function (d){
+	    						// 鼠标移入展示
+								d3.select(this).transition().duration(500).attr("fill", "yellow");
+								label_method_name.text("方法名："+d.content.method_name);
+								label_parameter.text("参数："+d.content.parameter);
+								label_return_type.text("返回值："+d.content.return_type);
+								label_class_name.text("类名："+d.content.class_name);
+								label_package_name.text("包名："+d.content.package_name);
+								label_mid.text("方法id："+d.content.mid);
+								
+	    					})
+	    					.on("mouseout",function(){
+	    						d3.select(this).attr("fill",function(d, i) {
+						            return color(i);
+						        });
+								// 鼠标移除展示
+								label_method_name.text("显示方法名，还未选中节点");
+								label_parameter.text("显示方法参数");
+								label_return_type.text("显示返回值");
+								label_class_name.text("显示类名");
+								label_package_name.text("显示包名");
+								label_mid.text("显示方法id");
+								
+	    					})
+	    					.call(force.drag);
+
+	    // 描述节点的文字
+	    var svg_texts = svg.selectAll("aaaaa").data(root.nodes).enter().append("text").style("fill", "black").attr("dx", 20).attr("dy", 8)
+	    	.text(function(d) {
+	        //从json文件中取
+	        return d.content.method_name;
+	    });
+
+	    	// 箭头的位置
+	    svg_edges.attr("marker-mid", "url(#arrow)").attr("marker-end", "url(#arrow)");
+
+
+//力学图每一帧
+	    force.on("tick",function() {
+
+	        //更新连线坐标
+	        svg_edges.attr("x1",function(d) {
+	            return d.source.x;
+	        })
+	        .attr("y1",function(d) {
+	            return d.source.y;
+	        });
+
+	        // 修改线段的终点（l - l1）
+	        svg_edges.each(function(d) {
+	        	if (true) {
+					// Work around IE bug regarding paths with markers
+					// Credit: #6 and http://stackoverflow.com/a/18475039/106302
+					this.parentNode.insertBefore(this, this);
+				}
+	            var x1 = d.source.x,
+	            y1 = d.source.y;
+	            x2 = d.target.x,
+	            y2 = d.target.y;
+
+	            var l = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+	            var l1 = circleRadius * 1.8; //箭头方向缩短的长度
+	            var x3 = x1 + ((l - l1) / l) * (x2 - x1);
+	            var y3 = y1 + ((l - l1) / l) * (y2 - y1);
+
+	            d3.select(this).attr('x2', x3).attr('y2', y3);
+
+	        });
+
+	        // 更新节点坐标
+	        svg_nodes.attr("cx",function(d) {
+	            return d.x;
+	        })
+	        .attr("cy",function(d) {
+	            return d.y;
+	        });
+
+	        //更新文字坐标
+	        svg_texts.attr("x",function(d) {
+	            	return d.x;
+	        	})
+	        .attr("y",function(d) {
+	            return d.y;
+	        });
+
+
+		});
+	});
+	</script>
+
+</body>
+</html>
